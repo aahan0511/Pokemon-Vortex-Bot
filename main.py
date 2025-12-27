@@ -123,12 +123,12 @@ def browse_auctions(filter_type):
             logger.info(f"PAGES SCRAPED: {page}/{total_pages} - Total rows: {len(df)}")
 
         except Exception as e:
-            logger.error(f"Error scraping page {page}: {e}")
+            logger.error(f"ERROR SCRAPING PAGE {page}: {e}")
             continue
 
     # Final save
     df.to_csv("auctions_final.csv", index=False)
-    logger.info(f"Scraping complete! Total rows: {len(df)}")
+    logger.info(f"SCRAPING COMPLETE: Scraped {len(df)} rows")
     return df
 
 
