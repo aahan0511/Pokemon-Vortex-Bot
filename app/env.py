@@ -11,8 +11,7 @@ dotenv.load_dotenv()
 SESSION_ID: str | None = os.getenv("SESSION_ID")
 if not SESSION_ID:
     raise ValueError(
-        "SESSION_ID environment variable is required. "
-        "Please set it in your .env file."
+        "SESSION_ID environment variable is required. Please set it in your .env file."
     )
 
 # Create required directories

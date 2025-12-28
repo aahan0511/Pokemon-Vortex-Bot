@@ -47,11 +47,11 @@ def _get_headers() -> dict[str, str]:
 def _process_page(response_text: str, soup: BeautifulSoup) -> pd.DataFrame:
     """
     Process a single page of auction data.
-    
+
     Args:
         response_text: HTML response text
         soup: BeautifulSoup object of the page
-        
+
     Returns:
         DataFrame with processed auction data
     """
@@ -78,7 +78,7 @@ def _process_page(response_text: str, soup: BeautifulSoup) -> pd.DataFrame:
     extracted: pd.Series = df["Auction"].apply(extract_quantity_and_item)
     df["Quantity"] = extracted.apply(lambda x: x[0])
     df["Item"] = extracted.apply(lambda x: x[1])
-    
+
     # Extract auction IDs
     df["Auction ID"] = extract_auction_ids(soup)
 
@@ -92,19 +92,19 @@ def _process_page(response_text: str, soup: BeautifulSoup) -> pd.DataFrame:
 def _get_total_pages(soup: BeautifulSoup) -> int:
     """
     Extract total number of pages from pagination.
-    
+
     Args:
         soup: BeautifulSoup object of the first page
-        
+
     Returns:
         Total number of pages
     """
     pagination_elements: list[Tag] = soup.select("div.pagination div.page-num")
-    
+
     if not pagination_elements:
         logger.warning("No pagination elements found, assuming 1 page")
         return 1
-    
+
     try:
         total_pages = int(pagination_elements[-1].text.strip())
         logger.info(f"Total pages available: {total_pages}")
@@ -117,19 +117,19 @@ def _get_total_pages(soup: BeautifulSoup) -> int:
 def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
     """
     Scrape Pokemon Vortex auctions, stopping when prices exceed budget.
-    
+
     Args:
         filter_type: Type of auction to filter ("items", "pokemon", etc.)
-        
+
     Returns:
         DataFrame containing all scraped auction data
     """
     logger.info(f"Starting auction scraping with filter: {filter_type}")
-    
+
     # Build URL and prepare request
     url: str = f"{BASE_URL}?order=pricelow&filter={filter_type}&search=&ajax=1"
     headers: dict[str, str] = _get_headers()
-    
+
     # Fetch budget
     try:
         budget: int = get_budget()
@@ -144,7 +144,7 @@ def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
             url, headers=headers, data={}, timeout=REQUEST_TIMEOUT
         )
         response.raise_for_status()
-        
+
     except requests.RequestException as e:
         logger.error(f"Failed to fetch first page: {e}")
         raise
@@ -154,7 +154,7 @@ def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
 
     # Process first page
     df: pd.DataFrame = _process_page(response.text, soup)
-    
+
     if df.empty:
         logger.warning("First page returned no data")
         return df
@@ -171,15 +171,15 @@ def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
         try:
             # Rate limiting
             time.sleep(RATE_LIMIT_DELAY)
-            
+
             page_url: str = f"{url}&page={page}"
             logger.debug(f"Fetching page {page}/{total_pages}")
-            
+
             page_response: requests.Response = requests.post(
                 page_url, headers=headers, data={}, timeout=REQUEST_TIMEOUT
             )
             page_response.raise_for_status()
-            
+
         except requests.RequestException as e:
             logger.error(f"Failed to fetch page {page}: {e}")
             continue
@@ -195,7 +195,7 @@ def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
         # Append to progressive CSV
         page_df.to_csv(PROGRESSIVE_CSV, mode="a", header=False, index=False)
         df = pd.concat([df, page_df], ignore_index=True)
-        
+
         logger.info(
             f"Page {page}/{total_pages} complete - "
             f"Total: {len(df)} auctions, "
@@ -213,7 +213,7 @@ def browse_auctions(filter_type: str = "items") -> pd.DataFrame:
     # Save final results
     df.to_csv(FINAL_CSV, index=False)
     logger.info(f"Saved final results to {FINAL_CSV}")
-    
+
     # Cleanup progressive file
     if PROGRESSIVE_CSV.exists():
         PROGRESSIVE_CSV.unlink()
