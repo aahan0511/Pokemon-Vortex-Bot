@@ -1,2 +1,6 @@
 *.env
+
+debug/
 *.log
+
+out/
